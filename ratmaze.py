@@ -48,7 +48,7 @@ class Maze:
         return False
     
     def distance(self,position:Position):
-        return np.linalg.norm(position,self.end)
+        return np.linalg.norm((position.x,position.y),(self.end.x,self.end.y))[0]
     
     
 
@@ -78,6 +78,7 @@ class Solution:
                 if result:
                     return result
                 
+
     def bfs(self,maze:Maze):
         queue = deque()
         start = Position(0,0)
@@ -94,6 +95,31 @@ class Solution:
                 if maze.isFree(nextpos):
                     newpath = curpath+[nextpos]
                     queue.append(newpath)
+
+    def astar(self,maze:Maze):
+        queue = []
+        start = Position(0,0)
+        queue.append([start,0])
+        visited = set()
+        visited.add(start)
+
+        while queue != []:
+            minpath = []
+            mindist = float('inf')
+            for path in queue:
+                dist = maze.distance(path[-1])
+                if dist < mindist:
+                    mindist = dist
+                    minpath = path
+            curpath = minpath   
+            if curpath[-1] == maze.end:
+                return curpath
+            for direction in self.directions:
+                nextpos = curpath[-1]+direction
+                if maze.isFree(nextpos):
+                    newpath = curpath+[nextpos]
+                    queue.append(newpath)
+
 
                 
         
@@ -112,10 +138,12 @@ maze = np.array([
 
 pathDFS = sol.dfs(Maze(maze),[Position(0,0)])
 pathBFS = sol.bfs(Maze(maze))
+pathAstar = sol.astar(Maze(maze))
 
-print("DFS path: ",pathDFS)
+print("DFS path: ",pathAstar)
 print("bFS path: ",pathBFS)
 
+print(Maze(maze).distance(Position(4,0)))
 
             
 

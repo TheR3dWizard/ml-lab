@@ -1,12 +1,16 @@
+import math
 import numpy as np
 from collections import deque 
 from typing import List,Set
-
+import copy
 
 class Position:
     def __init__(self,x,y):
         self.x = x
         self.y = y
+
+    def distance(self,position):
+        return math.sqrt((position.x-self.x)**2 + (position.y-self.y)**2)
 
     def __add__(self,position):
         return Position(self.x+position.x,self.y+position.y)
@@ -48,9 +52,25 @@ class Maze:
         return False
     
     def distance(self,position:Position):
-        return np.linalg.norm((position.x,position.y),(self.end.x,self.end.y))[0]
+        return math.sqrt((position.x-self.end.x)**2 + (position.y-self.end.y)**2)
     
+class Path:
+    def __init__(self,nodes:List[Position]=[],length=0):
+        self.path = nodes
+        self.length = length
+
+    def add(self,position:Position):
+        self.length += position.distance(self.path[-1])
+        self.path.append(position)
+
+    def getEnd(self):
+        return self.path[-1]
+
+    def __repr__(self):
+        return f"Nodes: {self.path} Distance: {self.length}"
     
+    def copy(self):
+        return Path(copy.deepcopy(self.path),self.length)
 
 class Solution:
     def __init__(self):
@@ -63,18 +83,19 @@ class Solution:
        self.visited = set()
        self.visited.add(Position(0,0))
        
-    def dfs(self,maze:Maze,path:List[Position],pos:Position=Position(0,0)):
-        print("Current Position",pos)
+    def dfs(self,maze:Maze,path:Path,pos:Position=Position(0,0)):
+        # print("Current Position",pos)
         if pos == maze.end:
             return path
         for direction in self.directions:
             nextpos = pos + direction
-            print("Next position: ",nextpos)
+            # print("Next position: ",nextpos)
             if nextpos in self.visited:
                 continue 
             if maze.isFree(nextpos):
                 self.visited.add(nextpos)
-                result =  self.dfs(maze,path+[nextpos],nextpos)
+                path.add(nextpos)
+                result =  self.dfs(maze,path,nextpos)
                 if result:
                     return result
                 
@@ -82,42 +103,46 @@ class Solution:
     def bfs(self,maze:Maze):
         queue = deque()
         start = Position(0,0)
-        queue.append([start])
+        queue.append(Path([start]))
         visited = set()
         visited.add(start)
 
         while queue != []:
             curpath = queue.popleft()
-            if curpath[-1] == maze.end:
+            if curpath.getEnd() == maze.end:
                 return curpath
             for direction in self.directions:
-                nextpos = curpath[-1]+direction
+                nextpos = curpath.getEnd()+direction
                 if maze.isFree(nextpos):
-                    newpath = curpath+[nextpos]
+                    newpath = curpath.copy()
+                    newpath.add(nextpos)
                     queue.append(newpath)
 
     def astar(self,maze:Maze):
-        queue = []
+        queue:List[Path] = []
         start = Position(0,0)
-        queue.append([start,0])
+        queue.append(Path([start]))
         visited = set()
         visited.add(start)
 
         while queue != []:
-            minpath = []
+            minpath:Path = None
             mindist = float('inf')
             for path in queue:
-                dist = maze.distance(path[-1])
+                hn = maze.distance(path.getEnd())                
+                dist = hn + path.length
                 if dist < mindist:
                     mindist = dist
                     minpath = path
-            curpath = minpath   
-            if curpath[-1] == maze.end:
-                return curpath
+            if minpath.getEnd() == maze.end:
+                return minpath
+            queue.remove(minpath)
             for direction in self.directions:
-                nextpos = curpath[-1]+direction
-                if maze.isFree(nextpos):
-                    newpath = curpath+[nextpos]
+                nextpos = minpath.getEnd()+direction
+                if maze.isFree(nextpos) and nextpos not in visited:
+                    newpath = minpath.copy()
+                    newpath.add(nextpos)
+                    visited.add(nextpos)    
                     queue.append(newpath)
 
 
@@ -130,20 +155,23 @@ sol = Solution()
 maze = np.array([
     [0,0,0,1,0],
     [0,1,0,1,0],
-    [0,1,1,0,0],
+    [0,1,0,0,0],
     [0,1,0,0,0],
     [0,0,0,1,0],
     ]
 )
 
-pathDFS = sol.dfs(Maze(maze),[Position(0,0)])
+pathDFS = sol.dfs(Maze(maze),Path([Position(0,0)]))
 pathBFS = sol.bfs(Maze(maze))
 pathAstar = sol.astar(Maze(maze))
 
-print("DFS path: ",pathAstar)
+print("DFS path: ",pathDFS)
 print("bFS path: ",pathBFS)
+print("Astar path: ",pathAstar)
 
-print(Maze(maze).distance(Position(4,0)))
+# print(Maze(maze).distance(Position(0,0)))
+
+# print(Maze(maze).distance(Position(4,0)))
 
             
 
